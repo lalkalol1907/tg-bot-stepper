@@ -21,7 +21,7 @@ func (s *Stepper) Handle(ctx context.Context, b *bot.Bot, update *models.Update)
 	chatId := update.Message.Chat.ID
 	feature, step, err := s.cache.Get(ctx, chatId)
 	if err != nil {
-		s.logger.Warn(fmt.Sprintf("error getting cache for %d: %s", chatId, err.Error()))
+		s.logger.Ctx(ctx).Warn(fmt.Sprintf("error getting cache for %d: %s", chatId, err.Error()))
 		return
 	}
 
@@ -30,7 +30,7 @@ func (s *Stepper) Handle(ctx context.Context, b *bot.Bot, update *models.Update)
 		newFeature, ok := s.commandToFeature[text]
 
 		if !ok {
-			s.logger.Warn(fmt.Sprintf("error parsing command for %d, text: %s", chatId, text))
+			s.logger.Ctx(ctx).Warn(fmt.Sprintf("error parsing command for %d, text: %s", chatId, text))
 			return
 		}
 
@@ -39,7 +39,7 @@ func (s *Stepper) Handle(ctx context.Context, b *bot.Bot, update *models.Update)
 
 	response, err := s.features[*feature].Run(ctx, step, b, update)
 	if err != nil {
-		s.logger.Error(fmt.Sprintf(
+		s.logger.Ctx(ctx).Error(fmt.Sprintf(
 			"error running step %s of feature %s for %d: %s",
 			*step,
 			*feature,
@@ -52,14 +52,14 @@ func (s *Stepper) Handle(ctx context.Context, b *bot.Bot, update *models.Update)
 	if response.IsFinal {
 		err = s.cache.Del(ctx, chatId)
 		if err != nil {
-			s.logger.Warn(fmt.Sprintf("error deleting cache for %d: %s", chatId, err.Error()))
+			s.logger.Ctx(ctx).Warn(fmt.Sprintf("error deleting cache for %d: %s", chatId, err.Error()))
 		}
 		return
 	}
 
 	err = s.cache.Set(ctx, chatId, *feature, *response.NextStep)
 	if err != nil {
-		s.logger.Warn(fmt.Sprintf("error setting cache for %d: %s", chatId, err.Error()))
+		s.logger.Ctx(ctx).Warn(fmt.Sprintf("error setting cache for %d: %s", chatId, err.Error()))
 	}
 }
 
@@ -68,4 +68,11 @@ func (s *Stepper) AddFeature(featureName string, command string, feature *Featur
 	s.commandToFeature[command] = featureName
 
 	return s
+}
+
+func NewStepper(cache types.Cache, logger *otelzap.Logger) *Stepper {
+	return &Stepper{
+		logger: logger,
+		cache:  cache,
+	}
 }
