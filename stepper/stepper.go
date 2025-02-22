@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
+	"github.com/lalkalol1907/tg-bot-stepper/types"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
-	"tg-bot-stepper/types"
 )
 
 type Stepper struct {

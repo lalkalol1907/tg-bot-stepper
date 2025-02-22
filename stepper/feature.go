@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
-	"tg-bot-stepper/types"
+	"github.com/lalkalol1907/tg-bot-stepper/types"
 )
 
 type Feature struct {
