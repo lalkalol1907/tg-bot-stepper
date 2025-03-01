@@ -8,7 +8,6 @@ import (
 )
 
 type Feature struct {
-	name  string
 	steps map[string]types.Step
 
 	firstStep string
@@ -34,4 +33,10 @@ func (f *Feature) Run(ctx context.Context, stepName *string, b *bot.Bot, update 
 	}
 
 	return response, nil
+}
+
+func NewFeature() *Feature {
+	return &Feature{
+		steps: make(map[string]types.Step),
+	}
 }

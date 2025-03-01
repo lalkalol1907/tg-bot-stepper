@@ -74,5 +74,8 @@ func NewStepper(cache types.Cache, logger *otelzap.Logger) *Stepper {
 	return &Stepper{
 		logger: logger,
 		cache:  cache,
+
+		features:         make(map[string]*Feature),
+		commandToFeature: make(map[string]string),
 	}
 }
