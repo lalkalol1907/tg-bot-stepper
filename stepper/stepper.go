@@ -18,9 +18,19 @@ type Stepper struct {
 }
 
 func (s *Stepper) Handle(ctx context.Context, b *bot.Bot, update *models.Update) {
+	userId := update.Message.From.ID
+	chatId, err := s.cache.GetChatIdByUserId(ctx, userId)
+	if err != nil || chatId == nil {
+		newChatId := update.Message.Chat.ID
+		err = s.cache.SaveUserIdChatId(ctx, newChatId, userId)
+		chatId = &newChatId
+	}
+	if err != nil {
+		s.logger.Ctx(ctx).Warn(fmt.Sprintf("error setting cache for %d: %s", chatId, err.Error()))
+		return
+	}
 
-	chatId := update.Message.Chat.ID
-	feature, step, err := s.cache.Get(ctx, chatId)
+	feature, step, err := s.cache.Get(ctx, *chatId)
 	if err != nil {
 		s.logger.Ctx(ctx).Warn(fmt.Sprintf("error getting cache for %d: %s", chatId, err.Error()))
 		return
@@ -51,14 +61,14 @@ func (s *Stepper) Handle(ctx context.Context, b *bot.Bot, update *models.Update)
 	}
 
 	if response.IsFinal {
-		err = s.cache.Del(ctx, chatId)
+		err = s.cache.Del(ctx, *chatId)
 		if err != nil {
 			s.logger.Ctx(ctx).Warn(fmt.Sprintf("error deleting cache for %d: %s", chatId, err.Error()))
 		}
 		return
 	}
 
-	err = s.cache.Set(ctx, chatId, *feature, *response.NextStep)
+	err = s.cache.Set(ctx, *chatId, *feature, *response.NextStep)
 	if err != nil {
 		s.logger.Ctx(ctx).Warn(fmt.Sprintf("error setting cache for %d: %s", chatId, err.Error()))
 	}
