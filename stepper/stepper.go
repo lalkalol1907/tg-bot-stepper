@@ -18,6 +18,7 @@ type Stepper struct {
 }
 
 func (s *Stepper) Handle(ctx context.Context, b *bot.Bot, update *models.Update) {
+
 	chatId := update.Message.Chat.ID
 	feature, step, err := s.cache.Get(ctx, chatId)
 	if err != nil {
