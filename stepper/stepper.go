@@ -30,7 +30,6 @@ func (s *Stepper) Handle(ctx context.Context, b *bot.Bot, update *models.Update)
 		_, err = b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
 			CallbackQueryID: update.CallbackQuery.ID,
 			ShowAlert:       err != nil,
-			Text:            "Произошла ошибка",
 		})
 
 		if err != nil {
