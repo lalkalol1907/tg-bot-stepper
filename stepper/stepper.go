@@ -7,11 +7,13 @@ import (
 	"github.com/go-telegram/bot/models"
 	"github.com/lalkalol1907/tg-bot-stepper/types"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"strings"
 )
 
 type Stepper struct {
-	cache    types.Cache
-	features map[string]*Feature
+	cache           types.Cache
+	features        map[string]*Feature
+	callbackHandler *types.CallbackHandler
 
 	commandToFeature map[string]string
 	logger           *otelzap.Logger
@@ -36,8 +38,9 @@ func (s *Stepper) Handle(ctx context.Context, b *bot.Bot, update *models.Update)
 		return
 	}
 
-	if feature == nil {
-		text := update.Message.Text
+	text := update.Message.Text
+
+	if feature == nil || strings.HasPrefix(text, "/") {
 		newFeature, ok := s.commandToFeature[text]
 
 		if !ok {
@@ -78,6 +81,11 @@ func (s *Stepper) AddFeature(featureName string, command string, feature *Featur
 	s.features[featureName] = feature
 	s.commandToFeature[command] = featureName
 
+	return s
+}
+
+func (s *Stepper) AddCallbackHandler(handler *types.CallbackHandler) *Stepper {
+	s.callbackHandler = handler
 	return s
 }
 
