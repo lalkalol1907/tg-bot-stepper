@@ -27,14 +27,7 @@ func (s *Stepper) Handle(ctx context.Context, b *bot.Bot, update *models.Update)
 		if err != nil {
 			s.logger.Ctx(ctx).Warn(fmt.Sprintf("error executing cb command %s for %d: %s", update.CallbackQuery.Data, err.Error()))
 		}
-		_, err = b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
-			CallbackQueryID: update.CallbackQuery.ID,
-			ShowAlert:       err != nil,
-		})
 
-		if err != nil {
-			s.logger.Ctx(ctx).Warn(fmt.Sprintf("error answering cb command %s for %d: %s", update.CallbackQuery.Data, err.Error()))
-		}
 		return
 	}
 
