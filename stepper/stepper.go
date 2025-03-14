@@ -13,34 +13,48 @@ import (
 type Stepper struct {
 	cache           types.Cache
 	features        map[string]*Feature
-	callbackHandler *types.CallbackHandler
+	callbackHandler types.CallbackHandler
 
-	singleStepCommands map[string]*types.SingleStepCommandHandler
+	singleStepCommands map[string]types.SingleStepCommandHandler
 
 	commandToFeature map[string]string
 	logger           *otelzap.Logger
 }
 
 func (s *Stepper) Handle(ctx context.Context, b *bot.Bot, update *models.Update) {
-	userId := update.Message.From.ID
-	chatId, err := s.cache.GetChatIdByUserId(ctx, userId)
-	if err != nil || chatId == nil {
-		newChatId := update.Message.Chat.ID
-		err = s.cache.SaveUserIdChatId(ctx, newChatId, userId)
-		chatId = &newChatId
-	}
-	if err != nil {
-		s.logger.Ctx(ctx).Warn(fmt.Sprintf("error setting cache for %d: %s", chatId, err.Error()))
+	chatId := update.Message.From.ID
+	text := update.Message.Text
+
+	if update.CallbackQuery != nil && s.callbackHandler != nil {
+		err := s.callbackHandler(ctx, b, update.CallbackQuery)
+		if err != nil {
+			s.logger.Ctx(ctx).Warn(fmt.Sprintf("error executing cb command %s for %d: %s", text, chatId, err.Error()))
+		}
 		return
 	}
 
-	feature, step, err := s.cache.Get(ctx, *chatId)
+	if strings.HasPrefix(text, "/") {
+		ssCommand, ok := s.singleStepCommands[text]
+		if ok {
+			err := ssCommand(ctx, b, update)
+			if err != nil {
+				s.logger.Ctx(ctx).Warn(fmt.Sprintf("error executing command %s for %d: %s", text, chatId, err.Error()))
+			}
+			err = s.cache.Del(ctx, chatId)
+			if err != nil {
+				s.logger.Ctx(ctx).Warn(fmt.Sprintf("error deleting cache for %d: %s", chatId, err.Error()))
+			}
+			return
+		}
+	}
+
+	feature, step, err := s.cache.Get(ctx, chatId)
 	if err != nil {
 		s.logger.Ctx(ctx).Warn(fmt.Sprintf("error getting cache for %d: %s", chatId, err.Error()))
 		return
 	}
 
-	text := update.Message.Text
+	// TODO: CallbackQueryHandler
 
 	if feature == nil || strings.HasPrefix(text, "/") {
 		newFeature, ok := s.commandToFeature[text]
@@ -66,14 +80,14 @@ func (s *Stepper) Handle(ctx context.Context, b *bot.Bot, update *models.Update)
 	}
 
 	if response.IsFinal {
-		err = s.cache.Del(ctx, *chatId)
+		err = s.cache.Del(ctx, chatId)
 		if err != nil {
 			s.logger.Ctx(ctx).Warn(fmt.Sprintf("error deleting cache for %d: %s", chatId, err.Error()))
 		}
 		return
 	}
 
-	err = s.cache.Set(ctx, *chatId, *feature, *response.NextStep)
+	err = s.cache.Set(ctx, chatId, *feature, *response.NextStep)
 	if err != nil {
 		s.logger.Ctx(ctx).Warn(fmt.Sprintf("error setting cache for %d: %s", chatId, err.Error()))
 	}
@@ -87,11 +101,11 @@ func (s *Stepper) AddFeature(featureName string, command string, feature *Featur
 }
 
 func (s *Stepper) AddSingleStepCommand(command string, handler types.SingleStepCommandHandler) *Stepper {
-	s.singleStepCommands[command] = &handler
+	s.singleStepCommands[command] = handler
 	return s
 }
 
-func (s *Stepper) AddCallbackHandler(handler *types.CallbackHandler) *Stepper {
+func (s *Stepper) AddCallbackHandler(handler types.CallbackHandler) *Stepper {
 	s.callbackHandler = handler
 	return s
 }
@@ -101,7 +115,8 @@ func NewStepper(cache types.Cache, logger *otelzap.Logger) *Stepper {
 		logger: logger,
 		cache:  cache,
 
-		features:         make(map[string]*Feature),
-		commandToFeature: make(map[string]string),
+		features:           make(map[string]*Feature),
+		commandToFeature:   make(map[string]string),
+		singleStepCommands: make(map[string]types.SingleStepCommandHandler),
 	}
 }
