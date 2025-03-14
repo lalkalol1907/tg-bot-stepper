@@ -86,8 +86,8 @@ func (s *Stepper) AddFeature(featureName string, command string, feature *Featur
 	return s
 }
 
-func (s *Stepper) AddSingleStepCommand(command string, handler *types.SingleStepCommandHandler) *Stepper {
-	s.singleStepCommands[command] = handler
+func (s *Stepper) AddSingleStepCommand(command string, handler types.SingleStepCommandHandler) *Stepper {
+	s.singleStepCommands[command] = &handler
 	return s
 }
 
