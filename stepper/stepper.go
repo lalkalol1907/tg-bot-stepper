@@ -22,16 +22,18 @@ type Stepper struct {
 }
 
 func (s *Stepper) Handle(ctx context.Context, b *bot.Bot, update *models.Update) {
-	chatId := update.Message.From.ID
-	text := update.Message.Text
-
 	if update.CallbackQuery != nil && s.callbackHandler != nil {
 		err := s.callbackHandler(ctx, b, update.CallbackQuery)
 		if err != nil {
-			s.logger.Ctx(ctx).Warn(fmt.Sprintf("error executing cb command %s for %d: %s", text, chatId, err.Error()))
+			s.logger.Ctx(ctx).Warn(fmt.Sprintf("error executing cb command %s for %d: %s", update.CallbackQuery.Data, err.Error()))
 		}
 		return
 	}
+
+	// TODO: check message not null
+
+	chatId := update.Message.From.ID
+	text := update.Message.Text
 
 	if strings.HasPrefix(text, "/") {
 		ssCommand, ok := s.singleStepCommands[text]
