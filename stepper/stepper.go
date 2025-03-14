@@ -15,6 +15,8 @@ type Stepper struct {
 	features        map[string]*Feature
 	callbackHandler *types.CallbackHandler
 
+	singleStepCommands map[string]*types.SingleStepCommandHandler
+
 	commandToFeature map[string]string
 	logger           *otelzap.Logger
 }
@@ -81,6 +83,11 @@ func (s *Stepper) AddFeature(featureName string, command string, feature *Featur
 	s.features[featureName] = feature
 	s.commandToFeature[command] = featureName
 
+	return s
+}
+
+func (s *Stepper) AddSingleStepCommand(command string, handler *types.SingleStepCommandHandler) *Stepper {
+	s.singleStepCommands[command] = handler
 	return s
 }
 
