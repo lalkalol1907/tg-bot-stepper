@@ -119,6 +119,10 @@ func (s *Stepper) AddCallbackHandler(handler types.CallbackHandler) *Stepper {
 	return s
 }
 
+func (s *Stepper) OverrideCurrentFeature(ctx context.Context, chatId int64, feature string, nextStep string) error {
+	return s.cache.Set(ctx, chatId, feature, nextStep)
+}
+
 func NewStepper(cache types.Cache, logger *otelzap.Logger) *Stepper {
 	return &Stepper{
 		logger: logger,
