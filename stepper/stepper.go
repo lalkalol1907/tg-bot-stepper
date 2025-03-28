@@ -103,6 +103,12 @@ func (s *Stepper) AddFeature(featureName string, command string, feature *Featur
 	return s
 }
 
+// AddInternalFeature Добавляет фичу, которая не имеет команды и омжет триггериться только изнутри
+func (s *Stepper) AddInternalFeature(featureName string, feature *Feature) *Stepper {
+	s.features[featureName] = feature
+	return s
+}
+
 func (s *Stepper) AddSingleStepCommand(command string, handler types.SingleStepCommandHandler) *Stepper {
 	s.singleStepCommands[command] = handler
 	return s
