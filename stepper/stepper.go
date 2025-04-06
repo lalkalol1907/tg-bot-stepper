@@ -73,8 +73,7 @@ func (s *Stepper) Handle(ctx context.Context, b *bot.Bot, update *models.Update)
 	response, err := s.features[*feature].Run(ctx, step, b, update)
 	if err != nil {
 		s.logger.Ctx(ctx).Error(fmt.Sprintf(
-			"error running step %s of feature %s for %d: %s",
-			*step,
+			"error running step feature %s for %d: %s",
 			*feature,
 			chatId,
 			err.Error(),
