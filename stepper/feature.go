@@ -4,16 +4,16 @@ import (
 	"context"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
-	"github.com/lalkalol1907/tg-bot-stepper/types"
+	tbs "github.com/lalkalol1907/tg-bot-stepper"
 )
 
 type Feature struct {
-	steps map[string]types.Step
+	steps map[string]tbs.Step
 
 	firstStep string
 }
 
-func (f *Feature) AddStep(name string, step types.Step) *Feature {
+func (f *Feature) AddStep(name string, step tbs.Step) *Feature {
 	f.steps[name] = step
 	if len(f.steps) == 1 {
 		f.firstStep = name
@@ -22,12 +22,12 @@ func (f *Feature) AddStep(name string, step types.Step) *Feature {
 	return f
 }
 
-func (f *Feature) Run(ctx context.Context, stepName *string, b *bot.Bot, update *models.Update) (types.StepExecutionResult, error) {
-	if stepName == nil {
-		stepName = &f.firstStep
+func (f *Feature) Run(ctx context.Context, stepName string, b *bot.Bot, update *models.Update) (tbs.StepExecutionResult, error) {
+	if len(stepName) == 0 {
+		stepName = f.firstStep
 	}
 
-	response, err := f.steps[*stepName](ctx, b, update)
+	response, err := f.steps[stepName](ctx, b, update)
 	if err != nil {
 		return response, err
 	}
@@ -37,6 +37,6 @@ func (f *Feature) Run(ctx context.Context, stepName *string, b *bot.Bot, update 
 
 func NewFeature() *Feature {
 	return &Feature{
-		steps: make(map[string]types.Step),
+		steps: make(map[string]tbs.Step),
 	}
 }

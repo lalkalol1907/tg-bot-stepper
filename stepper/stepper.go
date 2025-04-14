@@ -5,17 +5,18 @@ import (
 	"fmt"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
-	"github.com/lalkalol1907/tg-bot-stepper/types"
+	tbs "github.com/lalkalol1907/tg-bot-stepper"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"go.uber.org/zap"
 	"strings"
 )
 
 type Stepper struct {
-	cache           types.Cache
+	cache           tbs.Cache
 	features        map[string]*Feature
-	callbackHandler types.CallbackHandler
+	callbackHandler tbs.CallbackHandler
 
-	singleStepCommands map[string]types.SingleStepCommandHandler
+	singleStepCommands map[string]tbs.SingleStepCommandHandler
 
 	commandToFeature map[string]string
 	logger           *otelzap.Logger
@@ -59,7 +60,7 @@ func (s *Stepper) Handle(ctx context.Context, b *bot.Bot, update *models.Update)
 
 	// TODO: CallbackQueryHandler
 
-	if feature == nil || strings.HasPrefix(text, "/") {
+	if len(feature) == 0 || strings.HasPrefix(text, "/") {
 		newFeature, ok := s.commandToFeature[text]
 
 		if !ok {
@@ -67,14 +68,20 @@ func (s *Stepper) Handle(ctx context.Context, b *bot.Bot, update *models.Update)
 			return
 		}
 
-		feature = &newFeature
+		feature = newFeature
 	}
 
-	response, err := s.features[*feature].Run(ctx, step, b, update)
+	f, ok := s.features[feature]
+	if !ok {
+		otelzap.Ctx(ctx).Error("no feature found", zap.String("feature", feature))
+		return
+	}
+
+	response, err := f.Run(ctx, step, b, update)
 	if err != nil {
 		s.logger.Ctx(ctx).Error(fmt.Sprintf(
 			"error running step feature %s for %d: %s",
-			*feature,
+			feature,
 			chatId,
 			err.Error(),
 		))
@@ -89,7 +96,7 @@ func (s *Stepper) Handle(ctx context.Context, b *bot.Bot, update *models.Update)
 		return
 	}
 
-	err = s.cache.Set(ctx, chatId, *feature, *response.NextStep)
+	err = s.cache.Set(ctx, chatId, feature, response.NextStep)
 	if err != nil {
 		s.logger.Ctx(ctx).Warn(fmt.Sprintf("error setting cache for %d: %s", chatId, err.Error()))
 	}
@@ -108,12 +115,12 @@ func (s *Stepper) AddInternalFeature(featureName string, feature *Feature) *Step
 	return s
 }
 
-func (s *Stepper) AddSingleStepCommand(command string, handler types.SingleStepCommandHandler) *Stepper {
+func (s *Stepper) AddSingleStepCommand(command string, handler tbs.SingleStepCommandHandler) *Stepper {
 	s.singleStepCommands[command] = handler
 	return s
 }
 
-func (s *Stepper) AddCallbackHandler(handler types.CallbackHandler) *Stepper {
+func (s *Stepper) AddCallbackHandler(handler tbs.CallbackHandler) *Stepper {
 	s.callbackHandler = handler
 	return s
 }
@@ -122,13 +129,13 @@ func (s *Stepper) OverrideCurrentFeature(ctx context.Context, chatId int64, feat
 	return s.cache.Set(ctx, chatId, feature, nextStep)
 }
 
-func NewStepper(cache types.Cache, logger *otelzap.Logger) *Stepper {
+func NewStepper(cache tbs.Cache, logger *otelzap.Logger) *Stepper {
 	return &Stepper{
 		logger: logger,
 		cache:  cache,
 
 		features:           make(map[string]*Feature),
 		commandToFeature:   make(map[string]string),
-		singleStepCommands: make(map[string]types.SingleStepCommandHandler),
+		singleStepCommands: make(map[string]tbs.SingleStepCommandHandler),
 	}
 }
