@@ -2,6 +2,7 @@ package stepper
 
 import (
 	"context"
+	"errors"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 	tbs "github.com/lalkalol1907/tg-bot-stepper"
@@ -27,7 +28,12 @@ func (f *Feature) Run(ctx context.Context, stepName string, b *bot.Bot, update *
 		stepName = f.firstStep
 	}
 
-	response, err := f.steps[stepName](ctx, b, update)
+	stepFunction, ok := f.steps[stepName]
+	if !ok {
+		return tbs.StepExecutionResult{}, errors.New("no step found")
+	}
+
+	response, err := stepFunction(ctx, b, update)
 	if err != nil {
 		return response, err
 	}

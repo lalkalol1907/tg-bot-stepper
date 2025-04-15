@@ -32,7 +32,10 @@ func (s *Stepper) Handle(ctx context.Context, b *bot.Bot, update *models.Update)
 		return
 	}
 
-	// TODO: check message not null
+	if update.Message == nil {
+		s.logger.Ctx(ctx).Warn("empty message")
+		return
+	}
 
 	chatId := update.Message.From.ID
 	text := update.Message.Text
